@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx
+
+      - name: Syntax check
+        run: |
+          cd backend
+          python -m py_compile main.py db.py response_engine.py log_collector.py threat_simulator.py ml/detector.py
+          echo "All files passed syntax check"
+
+      - name: Run pipeline test
+        run: |
+          cd backend
+          python -c "
+          import asyncio
+          from db import Database
+          from ml.detector import AnomalyDetector
+          from response_engine import AutoResponder
+          from log_collector import LogCollector
+          from threat_simulator import ThreatSimulator
+
+          db = Database()
+          det = AnomalyDetector()
+          resp = AutoResponder(db)
+          coll = LogCollector(db, det, resp)
+          coll.set_broadcast(lambda x: asyncio.sleep(0))
+
+          async def test():
+              sim = ThreatSimulator(coll)
+              await sim.run_simulation('brute_force', 'high')
+              s = db.get_stats()
+              assert s['total_logs'] > 0, 'No logs ingested'
+              assert s['alerts_generated'] > 0, 'No alerts raised'
+              print(f'PASS — logs={s[\"total_logs\"]} alerts={s[\"alerts_generated\"]} blocked={s[\"ips_blocked\"]}')
+
+          asyncio.run(test())
+          "
+
+  dashboard:
+    name: Dashboard Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd dashboard
+          npm install
+
+      - name: Build
+        run: |
+          cd dashboard
+          npm run build
+        env:
+          CI: false

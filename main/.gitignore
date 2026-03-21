@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+*.env
+
+# ML models (too large for git — use git-lfs or store separately)
+backend/ml/models/*.pkl
+backend/ml/models/*.pt
+backend/ml/models/*.h5
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+
+# React build output
+dashboard/build/
+
+# Environment variables
+.env
+.env.local
+.env.production
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker volumes
+esdata/
+
+# Logs
+*.log
+logs/
